@@ -1,0 +1,66 @@
+name: spend_zone
+description: "SpendZone - Personal Finance Analytics"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Database
+  drift: ^2.25.0
+  sqlite3_flutter_libs: ^0.5.28
+
+  # Secure Storage
+  flutter_secure_storage: ^9.2.4
+
+  # Charts
+  fl_chart: ^0.70.2
+
+  # Animations
+  flutter_animate: ^4.5.2
+
+  # Permissions
+  permission_handler: ^11.4.0
+
+  # SMS
+  flutter_sms_inbox: ^1.0.5
+
+  # Date/i18n
+  intl: ^0.20.2
+
+  # File Paths
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  # Share
+  share_plus: ^10.1.4
+
+  # UUID
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.25.0
+  build_runner: ^2.4.14
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
