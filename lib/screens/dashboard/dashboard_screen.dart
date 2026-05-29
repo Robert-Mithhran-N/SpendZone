@@ -15,6 +15,7 @@ import '../../widgets/recent_transactions.dart';
 import '../../widgets/empty_state.dart';
 import '../../providers/transaction_providers.dart';
 import '../../providers/sms_providers.dart';
+import '../../providers/analytics_providers.dart';
 import '../../utils/date_helpers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -99,7 +100,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: EmptyState(
                     icon: Icons.account_balance_wallet_rounded,
                     title: 'Welcome to SpendZone',
-                    description: 'No transactions found. Grant SMS permission or click "Load Demo Data" in Settings to populate samples.',
+                    description: 'No transactions found. Grant SMS permission to auto-scan your bank messages, or add transactions manually.',
                     actionLabel: 'Go to Settings',
                     onActionTap: () => context.go('/settings'),
                   ),
@@ -107,31 +108,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               );
             }
 
-            // Calculate current month figures
-            final now = DateTime.now();
-            final startOfMonth = DateHelpers.startOfMonth(now);
-            final endOfMonth = DateHelpers.endOfMonth(now);
-
-            final currentMonthTxs = transactions.where((tx) =>
-                tx.transactionDate.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-                tx.transactionDate.isBefore(endOfMonth.add(const Duration(seconds: 1))));
-
-            double monthIncome = 0;
-            double monthExpense = 0;
-            final Map<Category, double> categorySpends = {};
-            final Map<UpiApp, double> upiSpends = {};
-
-            for (final tx in currentMonthTxs) {
-              if (tx.type == TransactionType.credit) {
-                monthIncome += tx.amount;
-              } else {
-                monthExpense += tx.amount;
-                categorySpends[tx.category] = (categorySpends[tx.category] ?? 0) + tx.amount;
-                if (tx.upiApp != null && tx.upiApp != UpiApp.unknown) {
-                  upiSpends[tx.upiApp!] = (upiSpends[tx.upiApp!] ?? 0) + tx.amount;
-                }
-              }
-            }
+            // Retrieve current month figures via dashboardAnalyticsProvider
+            final analytics = ref.watch(dashboardAnalyticsProvider);
+            final monthIncome = analytics.totalIncome;
+            final monthExpense = analytics.totalExpense;
+            final categorySpends = analytics.categorySpends;
+            final upiSpends = analytics.upiSpends;
 
             // Calculate Monthly Trend (Last 6 Months)
             final last6Months = DateHelpers.lastNMonths(6);
@@ -161,19 +143,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               expenseTrend.add(mExp);
             }
 
-            // Map recent 5 transactions to VisualTransaction
-            final recentTxs = transactions.take(5).map((tx) {
-              return VisualTransaction(
-                id: tx.id,
-                amount: tx.amount,
-                type: tx.type,
-                category: tx.category,
-                merchant: tx.merchant,
-                upiApp: tx.upiApp ?? UpiApp.unknown,
-                transactionDate: tx.transactionDate,
-                source: tx.source,
-              );
-            }).toList();
+            // Recent Transactions
+            final recentTxs = transactions.take(5).toList();
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),

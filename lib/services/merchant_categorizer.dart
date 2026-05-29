@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import '../models/enums.dart';
 
@@ -45,7 +46,13 @@ class MerchantCategorizer {
       final Map<String, dynamic> rawMap = json.decode(jsonStr);
       final rules = rawMap.map((key, value) => MapEntry(key, value.toString()));
       return MerchantCategorizer(rules: rules);
-    } catch (_) {
+    } catch (e, stackTrace) {
+      developer.log(
+        'Failed to load merchant rules from asset bundle',
+        name: 'MerchantCategorizer',
+        error: e,
+        stackTrace: stackTrace,
+      );
       // Fallback empty if asset fails to load (e.g. in tests)
       return MerchantCategorizer(rules: {});
     }

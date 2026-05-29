@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/transaction_model.dart';
@@ -21,7 +22,7 @@ class SmsService {
   }
 
   /// Read SMS inbox and parse transactional messages.
-  /// Returns a list of parsed transaction models.
+  /// Returns a deduplicated list of parsed transaction models.
   Future<List<TransactionModel>> scanInbox() async {
     final hasPerm = await hasPermission();
     if (!hasPerm) {
@@ -35,19 +36,39 @@ class SmsService {
       );
 
       final List<TransactionModel> parsedTransactions = [];
+      final Set<String> deduplicationKeys = {};
+
       for (final msg in messages) {
         if (msg.body != null && msg.date != null) {
           final tx = parser.parse(msg.body!, msg.date!);
           if (tx != null) {
-            parsedTransactions.add(tx);
+            // Generate deduplication key from amount + date (truncated to minute) + reference
+            final dedupKey = _generateDedupKey(tx);
+            if (!deduplicationKeys.contains(dedupKey)) {
+              deduplicationKeys.add(dedupKey);
+              parsedTransactions.add(tx);
+            }
           }
         }
       }
 
       return parsedTransactions;
-    } catch (_) {
-      // Return empty if platform call fails (e.g. on emulators or non-Android devices)
+    } catch (e, stackTrace) {
+      developer.log(
+        'Failed to query SMS messages from content provider',
+        name: 'SmsService',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return [];
     }
+  }
+
+  /// Generate a deduplication key based on amount, date (to minute precision), and reference number.
+  /// This prevents the same SMS from creating duplicate transactions on re-scan.
+  String _generateDedupKey(TransactionModel tx) {
+    final dateKey = '${tx.transactionDate.year}-${tx.transactionDate.month}-${tx.transactionDate.day}-${tx.transactionDate.hour}-${tx.transactionDate.minute}';
+    final refKey = tx.referenceNumber ?? '';
+    return '${tx.amount}|$dateKey|$refKey|${tx.type.name}';
   }
 }

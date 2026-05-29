@@ -202,17 +202,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _loadDemoMockData() async {
-    await ref.read(transactionListProvider.notifier).loadMockData();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Loaded high-quality sample financial data!'),
-          backgroundColor: AppColors.income,
-        ),
-      );
-    }
-  }
+
 
   void _clearDatabase() async {
     final confirm = await showDialog<bool>(
@@ -329,13 +319,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: const Text('Restore transactions from JSON string'),
                     leading: const Icon(Icons.download_rounded, color: AppColors.primary),
                     onTap: _restoreData,
-                  ),
-                  const Divider(),
-                  ListTile(
-                    title: const Text('Load Demo Data'),
-                    subtitle: const Text('Inject high-quality sample transactions'),
-                    leading: const Icon(Icons.library_books_rounded, color: AppColors.income),
-                    onTap: _loadDemoMockData,
                   ),
                   const Divider(),
                   ListTile(

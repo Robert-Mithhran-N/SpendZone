@@ -1,38 +1,15 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../models/enums.dart';
+import '../models/transaction_model.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helpers.dart';
 import 'glass_card.dart';
 
-// Lightweight visual representation for Transactions in the UI.
-// This decouples the UI from SQLite tables until Phase 3 database setup.
-class VisualTransaction {
-  final String id;
-  final double amount;
-  final TransactionType type;
-  final Category category;
-  final String? merchant;
-  final UpiApp? upiApp;
-  final DateTime transactionDate;
-  final TransactionSource source;
-
-  const VisualTransaction({
-    required this.id,
-    required this.amount,
-    required this.type,
-    required this.category,
-    this.merchant,
-    this.upiApp,
-    required this.transactionDate,
-    required this.source,
-  });
-}
-
 class RecentTransactions extends StatelessWidget {
-  final List<VisualTransaction> transactions;
+  final List<TransactionModel> transactions;
   final VoidCallback? onViewAllTap;
-  final Function(VisualTransaction)? onTransactionTap;
+  final Function(TransactionModel)? onTransactionTap;
 
   const RecentTransactions({
     super.key,
@@ -164,7 +141,7 @@ class RecentTransactions extends StatelessWidget {
                                         color: AppColors.textSecondary,
                                       ),
                                 ),
-                                if (transaction.upiApp != UpiApp.unknown) ...[
+                                if (transaction.upiApp != null && transaction.upiApp != UpiApp.unknown) ...[
                                   const SizedBox(width: 6),
                                   Container(
                                     width: 3,

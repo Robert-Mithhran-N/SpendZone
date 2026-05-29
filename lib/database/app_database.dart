@@ -56,15 +56,47 @@ class AppDatabase extends _$AppDatabase {
     await into(transactionsTable).insertOnConflictUpdate(_mapToCompanion(transaction));
   }
 
-  /// Batch insert transactions
+  /// Batch insert transactions, ignoring duplicates
   Future<void> batchUpsertTransactions(List<TransactionModel> transactions) async {
+    final checkResults = await Future.wait(
+      transactions.map((tx) => transactionExists(tx.amount, tx.transactionDate, tx.referenceNumber))
+    );
+
+    final toInsert = <TransactionModel>[];
+    for (var i = 0; i < transactions.length; i++) {
+      if (!checkResults[i]) {
+        toInsert.add(transactions[i]);
+      }
+    }
+
+    if (toInsert.isEmpty) return;
+
     await batch((batch) {
       batch.insertAll(
         transactionsTable,
-        transactions.map(_mapToCompanion).toList(),
+        toInsert.map(_mapToCompanion).toList(),
         mode: InsertMode.insertOrReplace,
       );
     });
+  }
+
+  /// Check if a transaction with matching amount, date, and reference already exists.
+  /// Used to prevent duplicate imports from SMS re-scans.
+  Future<bool> transactionExists(double amount, DateTime date, String? refNumber) async {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+
+    final query = select(transactionsTable)
+      ..where((t) =>
+          t.amount.equals(amount) &
+          t.transactionDate.isBetweenValues(dayStart, dayEnd));
+
+    if (refNumber != null && refNumber.isNotEmpty) {
+      query.where((t) => t.referenceNumber.equals(refNumber));
+    }
+
+    final results = await query.get();
+    return results.isNotEmpty;
   }
 
   /// Delete transaction by ID

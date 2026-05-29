@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../theme/app_colors.dart';
+import '../utils/currency_formatter.dart';
 import 'glass_card.dart';
 
 class MonthlyTrendChart extends StatelessWidget {
@@ -80,7 +81,7 @@ class MonthlyTrendChart extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         if (value == meta.max) return const SizedBox.shrink();
                         return Text(
-                          _formatCompact(value),
+                          CurrencyFormatter.formatCompact(value),
                           style: TextStyle(
                             color: AppColors.textTertiary,
                             fontSize: 10,
@@ -176,14 +177,7 @@ class MonthlyTrendChart extends StatelessWidget {
     );
   }
 
-  String _formatCompact(double value) {
-    if (value >= 100000) {
-      return '₹${(value / 100000).toStringAsFixed(1)}L';
-    } else if (value >= 1000) {
-      return '₹${(value / 1000).toStringAsFixed(0)}K';
-    }
-    return '₹${value.toStringAsFixed(0)}';
-  }
+
 }
 
 class _LegendItem extends StatelessWidget {

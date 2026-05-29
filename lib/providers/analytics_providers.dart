@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/enums.dart';
+import '../models/transaction_model.dart';
 import '../models/analytics_model.dart';
 import '../utils/date_helpers.dart';
 import 'transaction_providers.dart';
@@ -103,6 +104,52 @@ final analyticsPeriodProvider =
   return AnalyticsPeriodNotifier();
 });
 
+/// Helper function to calculate analytics from a list of transactions in a date range
+AnalyticsModel calculateAnalytics(
+  List<TransactionModel> transactions,
+  DateTime start,
+  DateTime end,
+) {
+  final rangeTransactions = transactions.where((tx) {
+    final date = tx.transactionDate;
+    return date.isAfter(start.subtract(const Duration(seconds: 1))) &&
+        date.isBefore(end.add(const Duration(seconds: 1)));
+  }).toList();
+
+  double totalIncome = 0;
+  double totalExpense = 0;
+  final Map<Category, double> categorySpends = {};
+  final Map<UpiApp, double> upiSpends = {};
+  final Map<DateTime, double> dailySpends = {};
+
+  for (final tx in rangeTransactions) {
+    final amt = tx.amount;
+    if (tx.type == TransactionType.credit) {
+      totalIncome += amt;
+    } else {
+      totalExpense += amt;
+      // Accumulate category spends
+      categorySpends[tx.category] = (categorySpends[tx.category] ?? 0) + amt;
+      // Accumulate UPI spends
+      if (tx.upiApp != null && tx.upiApp != UpiApp.unknown) {
+        upiSpends[tx.upiApp!] = (upiSpends[tx.upiApp!] ?? 0) + amt;
+      }
+      // Accumulate daily spends
+      final dayKey = DateHelpers.startOfDay(tx.transactionDate);
+      dailySpends[dayKey] = (dailySpends[dayKey] ?? 0) + amt;
+    }
+  }
+
+  return AnalyticsModel(
+    totalIncome: totalIncome,
+    totalExpense: totalExpense,
+    netCashFlow: totalIncome - totalExpense,
+    categorySpends: categorySpends,
+    upiSpends: upiSpends,
+    dailySpends: dailySpends,
+  );
+}
+
 /// Exposes calculated AnalyticsModel based on selected period dateRange and transactionList stream
 final analyticsModelProvider = Provider<AnalyticsModel>((ref) {
   final transactionsAsync = ref.watch(transactionsStreamProvider);
@@ -111,48 +158,23 @@ final analyticsModelProvider = Provider<AnalyticsModel>((ref) {
   final end = periodState.dateRange.end;
 
   return transactionsAsync.when(
-    data: (transactions) {
-      // Filter transactions within selected range
-      final rangeTransactions = transactions.where((tx) {
-        final date = tx.transactionDate;
-        return date.isAfter(start.subtract(const Duration(seconds: 1))) &&
-            date.isBefore(end.add(const Duration(seconds: 1)));
-      }).toList();
-
-      double totalIncome = 0;
-      double totalExpense = 0;
-      final Map<Category, double> categorySpends = {};
-      final Map<UpiApp, double> upiSpends = {};
-      final Map<DateTime, double> dailySpends = {};
-
-      for (final tx in rangeTransactions) {
-        final amt = tx.amount;
-        if (tx.type == TransactionType.credit) {
-          totalIncome += amt;
-        } else {
-          totalExpense += amt;
-          // Accumulate category spends
-          categorySpends[tx.category] = (categorySpends[tx.category] ?? 0) + amt;
-          // Accumulate UPI spends
-          if (tx.upiApp != null && tx.upiApp != UpiApp.unknown) {
-            upiSpends[tx.upiApp!] = (upiSpends[tx.upiApp!] ?? 0) + amt;
-          }
-          // Accumulate daily spends
-          final dayKey = DateHelpers.startOfDay(tx.transactionDate);
-          dailySpends[dayKey] = (dailySpends[dayKey] ?? 0) + amt;
-        }
-      }
-
-      return AnalyticsModel(
-        totalIncome: totalIncome,
-        totalExpense: totalExpense,
-        netCashFlow: totalIncome - totalExpense,
-        categorySpends: categorySpends,
-        upiSpends: upiSpends,
-        dailySpends: dailySpends,
-      );
-    },
+    data: (transactions) => calculateAnalytics(transactions, start, end),
     loading: () => AnalyticsModel.empty(),
     error: (err, stack) => AnalyticsModel.empty(),
   );
 });
+
+/// Exposes calculated AnalyticsModel specifically for the current month, used by the Dashboard
+final dashboardAnalyticsProvider = Provider<AnalyticsModel>((ref) {
+  final transactionsAsync = ref.watch(transactionsStreamProvider);
+  final now = DateTime.now();
+  final start = DateHelpers.startOfMonth(now);
+  final end = DateHelpers.endOfMonth(now);
+
+  return transactionsAsync.when(
+    data: (transactions) => calculateAnalytics(transactions, start, end),
+    loading: () => AnalyticsModel.empty(),
+    error: (err, stack) => AnalyticsModel.empty(),
+  );
+});
+

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,8 +20,21 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _navigateAfterDelay() async {
     await Future.delayed(const Duration(milliseconds: 2000));
-    if (mounted) {
-      context.go('/dashboard');
+    if (!mounted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      if (mounted) {
+        if (onboardingCompleted) {
+          context.go('/dashboard');
+        } else {
+          context.go('/onboarding');
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        context.go('/dashboard');
+      }
     }
   }
 

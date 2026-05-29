@@ -14,6 +14,12 @@ class SmsParser {
   TransactionModel? parse(String smsBody, DateTime smsDate) {
     final lowerBody = smsBody.toLowerCase();
 
+    // 0. Filter out non-transactional messages (OTPs, promos, etc.)
+    if (SmsPatterns.nonTransactionalFilter.hasMatch(lowerBody) &&
+        !SmsPatterns.amountPattern.hasMatch(lowerBody)) {
+      return null;
+    }
+
     // 1. Determine if it is a transactional message
     final isDebit = SmsPatterns.debitDetector.hasMatch(lowerBody);
     final isCredit = SmsPatterns.creditDetector.hasMatch(lowerBody);
@@ -35,9 +41,23 @@ class SmsParser {
 
     if (amount <= 0) return null;
 
-    // 3. Determine Transaction Type
-    // If both credit and debit keywords are found, debit takes precedence (e.g., "Rs X debited for payment to Y, a/c credited with Y")
-    final type = isDebit ? TransactionType.debit : TransactionType.credit;
+    // 3. Determine Transaction Type with improved context analysis
+    TransactionType type;
+    if (isCredit && !isDebit) {
+      type = TransactionType.credit;
+    } else if (isDebit && !isCredit) {
+      type = TransactionType.debit;
+    } else {
+      // Both keywords present — use contextual priority:
+      // "refund", "cashback", "reversal", "credited" signals credit
+      final refundMatch = RegExp(r'(refund|cashback|reversal)', caseSensitive: false).hasMatch(lowerBody);
+      if (refundMatch) {
+        type = TransactionType.credit;
+      } else {
+        // Default: debit takes precedence (e.g., "debited for payment to X")
+        type = TransactionType.debit;
+      }
+    }
 
     // 4. Extract UPI App
     UpiApp upiApp = UpiApp.unknown;

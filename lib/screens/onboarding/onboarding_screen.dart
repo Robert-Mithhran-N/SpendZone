@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/sms_providers.dart';
 
@@ -40,6 +42,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ),
   ];
 
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
+  }
+
   Future<void> _next() async {
     if (_currentPage < _pages.length - 1) {
       _pageController.nextPage(
@@ -50,6 +57,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // Prompt user for SMS reading permission before landing on the dashboard
       final scanNotifier = ref.read(smsScanProvider.notifier);
       final granted = await scanNotifier.requestPermission();
+      
+      await _completeOnboarding();
       
       if (mounted) {
         if (granted) {
@@ -91,7 +100,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Align(
               alignment: Alignment.topRight,
               child: TextButton(
-                onPressed: () => context.go('/dashboard'),
+                onPressed: () async {
+                  await _completeOnboarding();
+                  if (context.mounted) {
+                    context.go('/dashboard');
+                  }
+                },
                 child: const Text(
                   'Skip',
                   style: TextStyle(
@@ -257,6 +271,3 @@ class _OnboardingPage {
     required this.gradient,
   });
 }
-
-// Simple helper to avoid dependency on dart:async unawaited
-void unawaited(Future<void> future) {}

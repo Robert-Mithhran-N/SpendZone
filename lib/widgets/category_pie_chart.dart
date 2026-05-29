@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../theme/app_colors.dart';
 import '../models/enums.dart';
+import '../utils/currency_formatter.dart';
 import 'glass_card.dart';
 
 class CategoryPieChart extends StatefulWidget {
@@ -146,7 +147,7 @@ class _CategoryPieChartState extends State<CategoryPieChart> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '₹${_formatCompact(totalSpend)}',
+                              CurrencyFormatter.formatCompact(totalSpend),
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: AppColors.textPrimary,
                                     fontWeight: FontWeight.bold,
@@ -212,12 +213,4 @@ class _CategoryPieChartState extends State<CategoryPieChart> {
     );
   }
 
-  String _formatCompact(double value) {
-    if (value >= 100000) {
-      return '${(value / 100000).toStringAsFixed(1)}L';
-    } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(0)}K';
-    }
-    return value.toStringAsFixed(0);
-  }
 }
