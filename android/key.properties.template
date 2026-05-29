@@ -1,0 +1,8 @@
+# SpendZone Release Signing Configuration Template
+# Rename this file to 'key.properties' in the same folder and fill in the values below.
+# DO NOT commit the renamed 'key.properties' or your keystore file to Git.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=YOUR_KEY_ALIAS
+storeFile=../key.jks
