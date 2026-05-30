@@ -48,3 +48,7 @@ app.*.map.json
 /android/key.properties
 /android/*.keystore
 /android/*.jks
+
+# Build artifacts
+*.apk
+/SpendZone-v1.0.0.apk
